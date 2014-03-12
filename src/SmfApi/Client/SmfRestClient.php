@@ -63,7 +63,7 @@ class SmfRestClient
     private $userAuth = array();
     private $apiServerUrl = null;
     private $apiDebug = null;
-
+    const SESSION_PREFIX = 'smfapi_sess_';
     /**
      * Construct magic method
      */
@@ -86,7 +86,7 @@ class SmfRestClient
      */
     public function __destruct()
     {
-        foreach (glob(sys_get_temp_dir()."/sess_*") as $filename) {
+        foreach (glob(sys_get_temp_dir()."/".(SELF::SESSION_PREFIX?:"sess_")."*") as $filename) {
             if (filemtime($filename) + 3600 < time()) {
                 @unlink($filename);
             }
@@ -134,7 +134,7 @@ class SmfRestClient
         }
         $this->save_path = sys_get_temp_dir();
         // build the 'cookie' filename and path
-        if(!($cookieFile  = tempnam($this->save_path, "sess_")))
+        if(!($cookieFile  = tempnam($this->save_path, SELF::SESSION_PREFIX ?: "sess_")))
         {
           throw new \Exception("cannot generate a session file");
         }
