@@ -45,14 +45,14 @@
  **********************************************************************************/
 
 /*
-    
- 	
+
+
 */
 namespace SmfApi\Client;
 
 
-if (!function_exists('curl_init'))  throw new Exception('SMF API Client Library requires the cURL PHP extension.');
-if (!function_exists('json_decode')) throw new Exception('SMF API Client Library requires the JSON PHP extension.');
+if (!function_exists('curl_init'))  throw new \Exception('SMF API Client Library requires the cURL PHP extension.');
+if (!function_exists('json_decode')) throw new \Exception('SMF API Client Library requires the JSON PHP extension.');
 
 class SmfRestClient
 {
@@ -64,6 +64,8 @@ class SmfRestClient
     private $apiServerUrl = null;
     private $apiDebug = null;
     const SESSION_PREFIX = 'smfapi_sess_';
+    private $save_path;
+
     /**
      * Construct magic method
      */
@@ -78,7 +80,7 @@ class SmfRestClient
             $this->format = 'raw';
         }
     }
-    
+
     /**
      * Destruct magic method
      *
@@ -86,13 +88,13 @@ class SmfRestClient
      */
     public function __destruct()
     {
-        foreach (glob(sys_get_temp_dir()."/".(SELF::SESSION_PREFIX?:"sess_")."*") as $filename) {
+        foreach (glob(sys_get_temp_dir()."/".(self::SESSION_PREFIX?:"sess_")."*") as $filename) {
             if (filemtime($filename) + 3600 < time()) {
                 @unlink($filename);
             }
         }
     }
-	
+
     /**
      * Call method
      *
@@ -125,7 +127,7 @@ class SmfRestClient
      *
      * @param  string $request the method to call and format to return results in
      * @param  array  $params the function parameters
-     * @return array or object depending on format
+     * @return array | object depending on format
      */
     protected function post_request($request, $params)
     {
@@ -134,18 +136,18 @@ class SmfRestClient
         }
         $this->save_path = sys_get_temp_dir();
         // build the 'cookie' filename and path
-        if(!($cookieFile  = tempnam($this->save_path, SELF::SESSION_PREFIX ?: "sess_")))
+        if(!($cookieFile  = tempnam($this->save_path, self::SESSION_PREFIX ?: "sess_")))
         {
           throw new \Exception("cannot generate a session file");
         }
         $this->sessionId  = session_id();
        // $cookieFile       = $this->save_path . '/sess_' . $this->sessionId . '.txt';
         $this->cookieFile = $cookieFile;
-    
+
         $url = $this->apiServerUrl . "$request";
 
         if ($this->apiDebug) {
-            echo "REQUEST: $url?" . http_build_query($params);
+            error_log("REQUEST: $url?" . http_build_query($params), E_USER_NOTICE);
         }
 
         $ch = curl_init();
@@ -157,7 +159,10 @@ class SmfRestClient
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $rawData = curl_exec($ch);
         curl_close($ch);
-        
+
+        if($this->apiDebug) {
+            error_log(var_dump($rawData), E_USER_NOTICE);
+        }
         if ('raw' == $this->format) {
             return $rawData;
         } else {
@@ -183,11 +188,11 @@ class SmfRestClient
 
         return $result;
     }
-    
+
     // ***************
     // Special Methods
     // ***************
-    
+
     /**
      * Logout user from API
      *
@@ -199,7 +204,7 @@ class SmfRestClient
             array()
         );
     }
-    
+
     /**
      * Create post
      *
@@ -219,7 +224,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Send PM
      *
@@ -235,7 +240,7 @@ class SmfRestClient
      * @param  int $pm_head
      * @return array number of pm's sent successfully and unsuccessfully
      */
-    
+
     public function send_pm($recipients, $subject, $message, $store_outbox = false, $from = null, $pm_head = 0)
     {
         return $this->call_method("send/pm",
@@ -268,7 +273,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Get user info
      *
@@ -283,7 +288,7 @@ class SmfRestClient
             array()
         );
     }
-    
+
     /**
      * Login user
      *
@@ -345,7 +350,7 @@ class SmfRestClient
      * Delete a member or members
      *
      * @param  int||array $users member id or array of member id's to delete
-     * @return bool whether the member(s) are gone 
+     * @return bool whether the member(s) are gone
      */
     public function delete_members($users)
     {
@@ -354,7 +359,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Register member
      *
@@ -371,7 +376,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Log error
      *
@@ -381,7 +386,7 @@ class SmfRestClient
      * @param  string $error_type the type of error
      * @param  string $file the filename
      * @param  string $line the line number
-     * @return bool whether logging was successfull 
+     * @return bool whether logging was successfull
      */
     public function log_error($error_message, $error_type = 'general', $file = null, $line = null)
     {
@@ -393,7 +398,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Update member data
      *
@@ -412,7 +417,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Check if user online
      *
@@ -428,7 +433,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Log user online
      *
@@ -448,7 +453,7 @@ class SmfRestClient
     // ***************
     // SSI Methods
     // ***************
-    
+
     /**
      * Shutdown SSI
      *
@@ -460,7 +465,7 @@ class SmfRestClient
             array()
         );
     }
-    
+
     /**
      * Show welcome
      *
@@ -500,7 +505,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show recent posts
      *
@@ -517,7 +522,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Fetch posts
      *
@@ -527,12 +532,12 @@ class SmfRestClient
     {
         return $this->call_method("fetch/posts",
             array('post_ids'             => serialize($post_ids),
-                  'override_permissions' => $override_permisssions,
+                  'override_permissions' => $override_permissions,
                   'output_method'        => $output_method,
             )
         );
     }
-    
+
     /**
      * Show recent topics
      *
@@ -548,7 +553,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show top poster
      *
@@ -562,7 +567,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show top boards
      *
@@ -576,7 +581,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show top topics
      *
@@ -593,7 +598,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show latest member
      *
@@ -606,7 +611,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show random member
      *
@@ -622,7 +627,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Fetch member data
      *
@@ -636,7 +641,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Fetch group members
      *
@@ -650,7 +655,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Query members
      *
@@ -667,7 +672,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show board stats
      *
@@ -680,7 +685,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show who's online
      *
@@ -693,7 +698,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Log user online
      *
@@ -706,7 +711,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show login box
      *
@@ -721,7 +726,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show recent poll
      *
@@ -737,7 +742,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show poll
      *
@@ -751,7 +756,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show quick search
      *
@@ -764,7 +769,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show news
      *
@@ -777,7 +782,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show todays birthdays
      */
@@ -788,7 +793,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show todays holidays
      */
@@ -799,7 +804,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show todays events
      */
@@ -810,7 +815,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show todays calendar
      */
@@ -821,7 +826,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show board news
      *
@@ -838,7 +843,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show recent events
      *
@@ -852,7 +857,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Check password
      *
@@ -868,7 +873,7 @@ class SmfRestClient
             )
         );
     }
-    
+
     /**
      * Show recent attachments
      *
